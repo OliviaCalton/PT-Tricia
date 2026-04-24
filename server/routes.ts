@@ -217,6 +217,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ success: true });
   });
 
+  // Reset user — wipes profile so onboarding restarts
+  app.delete("/api/profile/:id", (req, res) => {
+    const id = parseInt(req.params.id);
+    storage.deleteProfile(id);
+    return res.json({ success: true });
+  });
+
   // Get latest workout plan
   app.get("/api/plan/:userId", (req, res) => {
     const userId = parseInt(req.params.userId);

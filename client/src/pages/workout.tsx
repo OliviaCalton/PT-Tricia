@@ -79,16 +79,15 @@ export default function WorkoutPage() {
         rpe: logData.rpe ? parseInt(logData.rpe) : null,
         notes: logData.notes,
       }).then(r => r.json());
-      // Clear chat history AND workout plan so everything starts fresh
+      // Clear chat, plan, and profile — sends user back to onboarding
       await apiRequest("DELETE", `/api/chat/${profile!.id}`);
       await apiRequest("DELETE", `/api/plan/${profile!.id}`);
+      await apiRequest("DELETE", `/api/profile/${profile!.id}`);
       return session;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sessions", profile?.id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats", profile?.id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/chat", profile?.id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/plan", profile?.id] });
+      // Invalidate profile — app sees no profile and returns to onboarding
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       setLogOpen(false);
       setSelectedDay(null);
       setLogData({ duration: "", rpe: "", notes: "" });

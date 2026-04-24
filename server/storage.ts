@@ -74,6 +74,7 @@ export interface IStorage {
 
   // Workout plans
   deleteWorkoutPlans(userId: number): void;
+  deleteProfile(id: number): void;
 
   // Workout sessions
   getWorkoutSessions(userId: number): WorkoutSession[];
@@ -121,6 +122,9 @@ export const storage: IStorage = {
   },
   deleteWorkoutPlans(userId) {
     db.delete(workoutPlans).where(eq(workoutPlans.userId, userId)).run();
+  },
+  deleteProfile(id) {
+    db.delete(userProfiles).where(eq(userProfiles.id, id)).run();
   },
 
   getWorkoutSessions(userId) {
