@@ -72,6 +72,9 @@ export interface IStorage {
   getAllWorkoutPlans(userId: number): WorkoutPlan[];
   createWorkoutPlan(data: InsertWorkoutPlan): WorkoutPlan;
 
+  // Workout plans
+  deleteWorkoutPlans(userId: number): void;
+
   // Workout sessions
   getWorkoutSessions(userId: number): WorkoutSession[];
   createWorkoutSession(data: InsertWorkoutSession): WorkoutSession;
@@ -115,6 +118,9 @@ export const storage: IStorage = {
   },
   createWorkoutPlan(data) {
     return db.insert(workoutPlans).values(data).returning().get();
+  },
+  deleteWorkoutPlans(userId) {
+    db.delete(workoutPlans).where(eq(workoutPlans.userId, userId)).run();
   },
 
   getWorkoutSessions(userId) {

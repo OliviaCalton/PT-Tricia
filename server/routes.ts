@@ -210,6 +210,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Delete all plans for a user (called on session complete)
+  app.delete("/api/plan/:userId", (req, res) => {
+    const userId = parseInt(req.params.userId);
+    storage.deleteWorkoutPlans(userId);
+    return res.json({ success: true });
+  });
+
   // Get latest workout plan
   app.get("/api/plan/:userId", (req, res) => {
     const userId = parseInt(req.params.userId);

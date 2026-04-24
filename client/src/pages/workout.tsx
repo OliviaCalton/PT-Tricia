@@ -69,18 +69,26 @@ export default function WorkoutPage() {
   });
 
   const logSession = useMutation({
-    mutationFn: (day: WorkoutDay) =>
-      apiRequest("POST", "/api/sessions", {
+    mutationFn: async (day: WorkoutDay) => {
+      // Log the session
+      const session = await apiRequest("POST", "/api/sessions", {
         userId: profile!.id,
         sessionName: day.sessionName,
         exercises: day.exercises,
         durationMinutes: logData.duration ? parseInt(logData.duration) : day.duration,
         rpe: logData.rpe ? parseInt(logData.rpe) : null,
         notes: logData.notes,
-      }).then(r => r.json()),
+      }).then(r => r.json());
+      // Clear chat history AND workout plan so everything starts fresh
+      await apiRequest("DELETE", `/api/chat/${profile!.id}`);
+      await apiRequest("DELETE", `/api/plan/${profile!.id}`);
+      return session;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sessions", profile?.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats", profile?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/chat", profile?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/plan", profile?.id] });
       setLogOpen(false);
       setSelectedDay(null);
       setLogData({ duration: "", rpe: "", notes: "" });
