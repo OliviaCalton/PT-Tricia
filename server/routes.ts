@@ -121,7 +121,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     try {
       const response = await anthropic.messages.create({
-        model: "claude_sonnet_4_6",
+        model: "claude-sonnet-4-5",
         max_tokens: 1024,
         system: TRICIA_SYSTEM_PROMPT + (userContext ? `\n\n${userContext}` : ""),
         messages: [
@@ -166,35 +166,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     try {
       const response = await anthropic.messages.create({
-        model: "claude_sonnet_4_6",
-        max_tokens: 2048,
-        system: TRICIA_SYSTEM_PROMPT + `\n\n${userContext}\n\nWhen generating a workout plan, respond with ONLY valid JSON (no markdown, no extra text) in this exact structure:
-{
-  "planName": "string",
-  "weeklyTheme": "string",
-  "days": [
-    {
-      "day": "Monday",
-      "type": "strength|cardio|hiit|rest|active_recovery",
-      "sessionName": "string",
-      "duration": number,
-      "warmup": "string description",
-      "exercises": [
-        {
-          "name": "string",
-          "sets": number,
-          "reps": "string (e.g. '8-10' or '30 sec')",
-          "rest": "string (e.g. '60 sec')",
-          "cue": "string - key form tip",
-          "scalingEasier": "string",
-          "scalingHarder": "string"
-        }
-      ],
-      "cooldown": "string description",
-      "notes": "string - motivational note from Tricia"
-    }
-  ]
-}`,
+        model: "claude-sonnet-4-5",
+        max_tokens: 4096,
+        system: TRICIA_SYSTEM_PROMPT + "\n\n" + userContext + "\n\nWhen generating a workout plan, respond with ONLY valid JSON (no markdown, no extra text). Return a JSON object with this structure: { planName, weeklyTheme, days: [ { day, type (strength|cardio|hiit|rest|active_recovery), sessionName, duration (number, minutes), warmup, exercises: [ { name, sets (number), reps, rest, cue, scalingEasier, scalingHarder } ], cooldown, notes } ] }",
         messages: [
           {
             role: "user",
@@ -207,11 +181,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       let planData;
       try {
-        // Strip any markdown code blocks if present
-        const cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-        planData = JSON.parse(cleaned);
-      } catch {
-        return res.status(500).json({ error: "Failed to parse plan" });
+        // Extract JSON from code fences if present, else use raw
+        const fenceMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
+        let jsonStr = fenceMatch ? fenceMatch[1].trim() : rawText.trim();
+        // Fallback: find outermost { } if no fence matched cleanly
+        const jsonStart = jsonStr.indexOf('{');
+        const jsonEnd = jsonStr.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
+        }
+        planData = JSON.parse(jsonStr);
+      } catch (parseErr) {
+        console.error("Plan parse error:", (parseErr as Error).message, "\nRaw (first 400):", rawText.slice(0, 400));
+        return res.status(500).json({ error: "Failed to parse plan — AI returned unexpected format" });
       }
 
       const plan = storage.createWorkoutPlan({
